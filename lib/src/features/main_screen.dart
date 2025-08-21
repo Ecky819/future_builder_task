@@ -8,16 +8,21 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  final TextEditingController _zipController = TextEditingController();
+
+  Future<String>? _cityFuture;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.fromLTRB(8, 60, 8, 8),
         child: Center(
           child: Column(
-            spacing: 32,
+            spacing: 60,
             children: [
               TextFormField(
+                controller: _zipController,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),
                   labelText: "Postleitzahl",
@@ -25,13 +30,54 @@ class _MainScreenState extends State<MainScreen> {
               ),
               OutlinedButton(
                 onPressed: () {
-                  // TODO: implementiere Suche
+                  // Suche starten
+                  final zip = _zipController.text.trim();
+                  if (zip.isNotEmpty) {
+                    setState(() {
+                      _cityFuture = getCityFromZip(zip);
+                    });
+                  }
                 },
                 child: const Text("Suche"),
               ),
-              Text(
-                "Ergebnis: Noch keine PLZ gesucht",
-                style: Theme.of(context).textTheme.labelLarge,
+
+              FutureBuilder<String>(
+                future: _cityFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Column(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 8),
+                        Text(
+                          'Suche Stadt...',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ],
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    return Text(
+                      'Fehler: ${snapshot.error}',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: Colors.red,
+                      ),
+                    );
+                  }
+
+                  if (snapshot.hasData) {
+                    return Text(
+                      'Ergebnis: ${snapshot.data}',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    );
+                  }
+
+                  return Text(
+                    "Ergebnis: Noch keine PLZ gesucht",
+                    style: Theme.of(context).textTheme.labelLarge,
+                  );
+                },
               ),
             ],
           ),
@@ -42,7 +88,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   void dispose() {
-    // TODO: dispose controllers
+    _zipController.dispose();
     super.dispose();
   }
 
@@ -53,6 +99,8 @@ class _MainScreenState extends State<MainScreen> {
     switch (zip) {
       case "10115":
         return 'Berlin';
+      case "23611":
+        return 'Bad Schwartau';
       case "20095":
         return 'Hamburg';
       case "80331":
